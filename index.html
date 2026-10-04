@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reflection CO. Engineering Suite</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* Custom Scrollbar for a classy dark feel */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Print formatting - Forces clean white/black for ink saving */
+        @media print {
+            @page { margin: 0; } 
+            body, main, #main-content, div, table, tr, td, th { 
+                margin: 0;
+                background-color: white !important; 
+                color: black !important;
+                border-color: #cbd5e1 !important;
+                -webkit-print-color-adjust: exact; 
+            }
+            body { margin: 1.5cm; }
+            * { color: black !important; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            
+            #main-content { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+            #takeoff-preview-section { box-shadow: none !important; border: none !important; }
+            .matrix-table th { background-color: #f8fafc !important; color: #1e293b !important; }
+        }
+
+        /* Basic table styling for the Matrix in Dark Mode */
+        .matrix-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .matrix-table th, .matrix-table td { border: 1px solid #334155; padding: 0.5rem; text-align: center; }
+        .matrix-table th { background-color: #1e293b; color: #f8fafc; font-weight: 600; }
+        .matrix-table input[type="number"] { padding: 0.35rem; font-size: 0.9rem; text-align: center; width: 100%; border: 1px solid #475569; border-radius: 4px; background: #0f172a; color: white; }
+        .matrix-table input[type="number"]:focus { outline: none; border-color: #f59e0b; }
+
+        /* Hide arrows on number inputs */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#fffbeb', 100: '#fef3c7', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 900: '#78350f' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-300 font-sans h-screen flex overflow-hidden selection:bg-brand-500 selection:text-white">
+
+    <!-- LEFT SIDEBAR NAVIGATION (NO-PRINT) -->
+    <aside class="w-72 bg-slate-900 border-r border-slate-800 flex flex-col no-print shadow-2xl z-10">
+        <!-- Text Logo Section -->
+        <div class="p-8 flex justify-center items-center border-b border-slate-800">
+            <div class="bg-slate-100 p-4 rounded-2xl shadow-inner w-full flex justify-center items-center border border-slate-300">
+                <span dir="ltr" class="text-xl font-bold tracking-widest text-slate-900">Reflection CO.</span>
+            </div>
+        </div>
+
+        <!-- Navigation Rows -->
+        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-2">
+            <button onclick="switchTab('pump-select')" id="nav-pump-select" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all text-brand-400 bg-slate-800 border-l-4 border-brand-500 shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Pump Selection
+            </button>
+            <button onclick="switchTab('pump-head')" id="nav-pump-head" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border-l-4 border-transparent">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                System Head Calc
+            </button>
+            <button onclick="switchTab('takeoff')" id="nav-takeoff" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border-l-4 border-transparent">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                Material Takeoff (BOM)
+            </button>
+            <button onclick="switchTab('cement')" id="nav-cement" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border-l-4 border-transparent">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                Quick Cement Calc
+            </button>
+        </nav>
+        
+        <div class="p-4 border-t border-slate-800 text-center text-xs text-slate-500 font-medium">
+            Reflection CO. Engineering Suite <br> v3.0 Certified
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main id="main-content" class="flex-1 overflow-y-auto bg-slate-950 p-6 md:p-10">
+        
+        <!-- ========================================== -->
+        <!-- TAB 1: PUMP SELECTION -->
+        <!-- ========================================== -->
+        <div id="tab-pump-select" class="tab-panel block space-y-6 max-w-5xl mx-auto">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-white tracking-tight">Pump Selection Engine</h1>
+                <p class="text-slate-400 mt-2">Authoritative tool based on certified PSH Q-H datasets.</p>
+            </div>
+
+            <div class="bg-slate-900 rounded-2xl shadow-xl border border-slate-800 p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-300 mb-2">Required Flow Rate (Q)</label>
+                        <div class="relative">
+                            <input type="number" id="flow-input" step="0.1" min="0.1" placeholder="e.g., 15.0" class="block w-full pl-4 pr-16 py-3 bg-slate-950 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all font-mono placeholder-slate-600">
+                            <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500 font-medium">m³/h</div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-300 mb-2">Required Head (H)</label>
+                        <div class="relative">
+                            <input type="number" id="head-input" step="0.1" min="0.1" placeholder="e.g., 18.5" class="block w-full pl-4 pr-16 py-3 bg-slate-950 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all font-mono placeholder-slate-600">
+                            <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500 font-medium">m</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <button id="find-btn" onclick="runSelection(false)" class="flex-1 bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3 px-6 rounded-xl shadow-md transition-all transform active:scale-[0.98]">
+                        Find Ideal Pump
+                    </button>
+                    <button id="next-btn" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-6 rounded-xl shadow-md transition-all transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed" disabled onclick="runSelection(true)">
+                        Choose Next Alternative
+                    </button>
+                </div>
+                <div id="error-container" style="display: none;" class="mt-4 p-4 bg-red-900/30 border border-red-900/50 text-red-400 rounded-xl font-medium text-sm"></div>
+            </div>
+
+            <div id="results-section" style="display: none;" class="bg-slate-900 rounded-2xl shadow-xl border border-slate-800 p-6">
+                <div class="flex justify-between items-start border-b border-slate-800 pb-5 mb-5">
+                    <div>
+                        <h2 id="res-model-title" class="text-2xl font-bold text-white">Model Name</h2>
+                        <div id="res-family-subtitle" class="text-slate-400 mt-1 font-medium">Family</div>
+                    </div>
+                    <span class="px-3 py-1 bg-brand-900/40 text-brand-400 border border-brand-800/50 text-xs font-bold uppercase tracking-wide rounded-full">Certified Catalogue</span>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <div class="text-[0.65rem] uppercase tracking-wider font-bold text-slate-500 mb-1">Required Duty</div>
+                        <div id="metric-req-duty" class="font-bold text-white text-lg">-</div>
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <div class="text-[0.65rem] uppercase tracking-wider font-bold text-slate-500 mb-1">Actual Pump Head</div>
+                        <div id="metric-pump-head" class="font-bold text-brand-400 text-lg">-</div>
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <div class="text-[0.65rem] uppercase tracking-wider font-bold text-slate-500 mb-1">Motor Power</div>
+                        <div id="metric-power" class="font-bold text-white text-lg">-</div>
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <div class="text-[0.65rem] uppercase tracking-wider font-bold text-slate-500 mb-1">Best Efficiency Point</div>
+                        <div id="metric-bep" class="font-bold text-emerald-500 text-lg">-</div>
+                    </div>
+                </div>
+
+                <div id="warnings-area" class="mb-6 space-y-2"></div>
+                
+                <div class="bg-slate-950 border-l-4 border-brand-500 p-4 rounded-r-xl text-sm text-slate-300 mb-6" id="engineering-notes-text">
+                    Evaluating...
+                </div>
+
+                <div class="relative h-[400px] w-full border border-slate-800 rounded-xl p-4 bg-slate-950">
+                    <canvas id="qhChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: PUMP HEAD CALCULATOR -->
+        <!-- ========================================== -->
+        <div id="tab-pump-head" class="tab-panel hidden space-y-6 max-w-6xl mx-auto">
+            <div class="flex justify-between items-end mb-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-white tracking-tight">System Head Calculator</h1>
+                    <p class="text-slate-400 mt-2">Multi-Segment Friction & Dynamic Head Engineering Tool.</p>
+                </div>
+                <div class="text-right">
+                    <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Required Head</h2>
+                    <div id="grandTotalOut" class="text-4xl font-mono font-bold text-emerald-400 mt-1">0.00 m</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Left Column (Parameters) -->
+                <div class="col-span-1 lg:col-span-4 space-y-6">
+                    <div class="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800 border-t-4 border-t-brand-500">
+                        <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Step 1: System Heads</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 mb-1">STATIC HEAD (m)</label>
+                                <input type="number" id="staticHead" value="4.75" class="global-input block w-full px-3 py-2 bg-slate-950 border border-slate-700 text-white rounded-lg font-mono text-sm focus:ring-brand-500 focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 mb-1">AVAILABLE HEAD (m)</label>
+                                <input type="number" id="availHead" value="-2.5" class="global-input block w-full px-3 py-2 bg-slate-950 border border-slate-700 text-white rounded-lg font-mono text-sm focus:ring-brand-500 focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 mb-1">RESIDUAL REQUIRED (m)</label>
+                                <input type="number" id="residHead" value="3.0" class="global-input block w-full px-3 py-2 bg-slate-950 border border-slate-700 text-white rounded-lg font-mono text-sm focus:ring-brand-500 focus:border-brand-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800 border-t-4 border-t-purple-500">
+                        <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Step 3: Equipment & Safeties</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 mb-1">STRAINER / FILTER DROP (m)</label>
+                                <input type="number" id="filterDrop" value="5" class="global-input block w-full px-3 py-2 bg-slate-950 border border-slate-700 text-white rounded-lg font-mono text-sm focus:ring-purple-500 focus:border-purple-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 mb-1">HEAT PUMP DROP (m)</label>
+                                <input type="number" id="heatPumpDrop" value="3.5" class="global-input block w-full px-3 py-2 bg-slate-950 border border-slate-700 text-white rounded-lg font-mono text-sm focus:ring-purple-500 focus:border-purple-500">
+                            </div>
+                            <div class="border-t border-slate-800 pt-4">
+                                <label class="block text-xs font-bold text-slate-400 mb-1">LENGTH SAFETY FACTOR</label>
+                                <input type="number" id="lengthSF" value="1.15" step="0.01" class="global-input block w-full px-3 py-2 bg-orange-900/20 border border-orange-900/50 text-orange-400 rounded-lg font-mono text-sm focus:ring-orange-500 focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 mb-1">HEAD SAFETY FACTOR</label>
+                                <input type="number" id="headSF" value="1.10" step="0.01" class="global-input block w-full px-3 py-2 bg-orange-900/20 border border-orange-900/50 text-orange-400 rounded-lg font-mono text-sm focus:ring-orange-500 focus:border-orange-500">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 pt-5 border-t border-slate-800">
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest">Total Dynamic Head</label>
+                            <div id="dynamicHeadOut" class="text-2xl font-mono font-bold text-purple-400 mt-1">0.00 m</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column (Segments) -->
+                <div class="col-span-1 lg:col-span-8">
+                    <div class="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800 border-t-4 border-t-emerald-500">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xs font-bold text-slate-500 uppercase tracking-widest">Step 2: Piping Segments</h2>
+                            <button onclick="addSegment()" class="px-4 py-2 bg-emerald-900/30 text-emerald-400 font-bold rounded-lg text-sm border border-emerald-800/50 hover:bg-emerald-900/50 transition-colors">+ Add Segment</button>
+                        </div>
+                        
+                        <div id="segmentsContainer" class="space-y-5">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: MATERIAL TAKEOFF (BOM) -->
+        <!-- ========================================== -->
+        <div id="tab-takeoff" class="tab-panel hidden max-w-6xl mx-auto space-y-6">
+            
+            <div id="takeoff-builder-section" class="space-y-6 no-print">
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-white tracking-tight">Material Takeoff (BOM)</h1>
+                    <p class="text-slate-400 mt-2">Generate a comprehensive, printable Bill of Materials for your project.</p>
+                </div>
+
+                <div id="takeoff-sizes-container" class="space-y-4">
+                    <!-- Dynamic take-off cards inserted here -->
+                </div>
+
+                <!-- Independent Cement Input -->
+                <div class="bg-slate-900 border border-slate-800 text-white p-6 rounded-2xl shadow-xl">
+                    <h3 class="text-lg font-bold mb-4">Solvent Cement & Primer Estimation</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-400 mb-2">Solvent Cement Required (Kilos / Liters)</label>
+                            <input type="number" id="takeoff-cement-qty" min="0" step="0.5" value="0" class="block w-full px-4 py-3 bg-slate-950 border border-slate-700 text-white rounded-xl focus:ring-brand-500 focus:border-brand-500 font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-400 mb-2">Primer Required (Kilos / Liters)</label>
+                            <input type="number" id="takeoff-primer-qty" min="0" step="0.5" value="0" class="block w-full px-4 py-3 bg-slate-950 border border-slate-700 text-white rounded-xl focus:ring-brand-500 focus:border-brand-500 font-mono">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end pt-4">
+                    <button onclick="generateTakeoffPreview()" class="bg-brand-600 hover:bg-brand-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg transition-transform transform active:scale-95 text-lg">
+                        Generate BOM Preview
+                    </button>
+                </div>
+            </div>
+
+            <!-- PREVIEW / PRINT SECTION -->
+            <div id="takeoff-preview-section" style="display: none;" class="bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+                <div class="preview-toolbar flex flex-col md:flex-row justify-between items-center bg-slate-100 p-4 rounded-xl mb-8 border border-slate-200 gap-4 no-print text-slate-800">
+                    <div class="flex gap-4 w-full md:w-auto">
+                        <div class="flex-1 md:w-64">
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Project Name</label>
+                            <input type="text" id="preview-project-name" placeholder="E.g., Villa Pool Phase 1" oninput="updatePreviewContent()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-brand-500 bg-white text-black">
+                        </div>
+                        <div class="w-32">
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Language</label>
+                            <select id="preview-lang-select" onchange="updatePreviewContent()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-brand-500 bg-white text-black">
+                                <option value="en">English</option>
+                                <option value="ar">العربية</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 w-full md:w-auto">
+                        <button onclick="backToTakeoffBuilder()" class="flex-1 md:flex-none px-4 py-2 bg-slate-300 text-slate-800 font-semibold rounded-lg hover:bg-slate-400 text-sm">Edit</button>
+                        <button onclick="window.print()" class="flex-1 md:flex-none px-6 py-2 bg-slate-900 text-white font-semibold rounded-lg hover:bg-black text-sm shadow-md">Print PDF</button>
+                    </div>
+                </div>
+
+                <!-- Actual Printable Report -->
+                <div id="report-printable-area">
+                    <div class="text-center border-b-2 border-slate-900 pb-6 mb-6">
+                        <!-- Replaced broken image with properly formatted Text Logo -->
+                        <div dir="ltr" class="text-3xl font-bold tracking-widest text-slate-900 mb-4 print-only hidden">Reflection CO.</div>
+                        <h2 id="rep-title" class="text-2xl font-black text-slate-900 uppercase tracking-wide">Material Takeoff Summary (BOM)</h2>
+                        <p class="text-slate-600 mt-2 text-lg"><strong id="rep-proj-label">Project:</strong> <span id="rep-proj-name" class="text-slate-900 font-bold">-</span></p>
+                    </div>
+
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 border-b-2 border-slate-300 text-slate-800">
+                                <th id="th-item" class="py-3 px-4 font-bold w-1/2">Item / Description</th>
+                                <th id="th-size" class="py-3 px-4 font-bold">Size</th>
+                                <th id="th-qty" class="py-3 px-4 font-bold text-center">Quantity</th>
+                                <th id="th-unit" class="py-3 px-4 font-bold">Unit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="report-tbody" class="divide-y divide-slate-200">
+                            <!-- Filled via JS -->
+                        </tbody>
+                    </table>
+                    
+                    <div class="mt-12 text-center text-xs text-slate-400 font-medium">
+                        Generated by Reflection CO. Engineering Suite
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 4: CEMENT CALCULATOR (STANDALONE) -->
+        <!-- ========================================== -->
+        <div id="tab-cement" class="tab-panel hidden space-y-6 max-w-5xl mx-auto">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-white tracking-tight">Quick Cement Estimator</h1>
+                <p class="text-slate-400 mt-2">Standalone module for quick, on-the-fly joint calculations in Liters.</p>
+            </div>
+
+            <div class="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800 overflow-x-auto">
+                <table class="matrix-table min-w-[800px]" id="cement-matrix">
+                    <thead>
+                        <tr>
+                            <th class="text-left">Pipe Size</th>
+                            <th>Elbow 90° (2)</th>
+                            <th>Elbow 45° (2)</th>
+                            <th>Sockets (2)</th>
+                            <th>Reducers (2)</th>
+                            <th>Caps (1)</th>
+                            <th>Tees (3)</th>
+                            <th>Crosses (4)</th>
+                            <th>Flanges (1)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matrix-tbody">
+                        <!-- Populated dynamically via JS -->
+                    </tbody>
+                </table>
+
+                <div class="flex flex-col sm:flex-row gap-6 items-end mt-6 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <div class="w-full sm:w-64">
+                        <label class="block text-sm font-bold text-slate-400 mb-2">Wastage / Spillage Margin (%)</label>
+                        <input type="number" id="wastage-pct" value="10" min="0" max="50" class="block w-full px-3 py-2 bg-slate-900 border border-slate-700 text-white rounded-lg focus:ring-brand-500">
+                    </div>
+                    <button onclick="calculateCement()" class="w-full sm:w-auto bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 px-8 rounded-lg shadow-md">
+                        Calculate Volume
+                    </button>
+                </div>
+            </div>
+
+            <div id="cement-results-card" style="display: none;" class="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800 border-l-4 border-l-emerald-500">
+                <h2 class="text-xl font-bold text-white mb-4">Volume Estimation Summary</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center">
+                        <div class="text-xs uppercase font-bold text-slate-500 mb-1">Equivalent Joints</div>
+                        <div id="c-total-joints" class="text-2xl font-bold text-white">0</div>
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center">
+                        <div class="text-xs uppercase font-bold text-slate-500 mb-1">Cement Required</div>
+                        <div id="c-total-liters" class="text-2xl font-bold text-emerald-400">0 L</div>
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center">
+                        <div class="text-xs uppercase font-bold text-slate-500 mb-1">Primer (Approx. 50%)</div>
+                        <div id="c-total-primer" class="text-2xl font-bold text-brand-400">0 L</div>
+                    </div>
+                </div>
+                <div id="cement-breakdown-notes" class="text-sm text-slate-400 bg-slate-950 p-4 rounded-xl border border-slate-800 mt-4">
+                    Breakdown...
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- CORE JAVASCRIPT -->
+    <script>
+        // ==========================================
+        // UI & NAVIGATION LOGIC
+        // ==========================================
+        function switchTab(tabId) {
+            // Reset nav buttons to inactive dark mode styling
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-brand-400', 'bg-slate-800', 'border-brand-500');
+                btn.classList.add('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800/50', 'border-transparent');
+            });
+            // Highlight active in dark mode styling
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800/50', 'border-transparent');
+                activeBtn.classList.add('text-brand-400', 'bg-slate-800', 'border-brand-500');
+            }
+
+            // Toggle panels
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.add('hidden');
+                panel.classList.remove('block');
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabId}`).classList.add('block');
+        }
+
+        window.onload = function() {
+            // Init all modules
+            initCementMatrix();
+            initTakeoffBuilder();
+            renderSegments(); 
+            
+            // Attach event listeners for head calc
+            document.querySelectorAll('.global-input').forEach(el => {
+                el.addEventListener('input', calculateSystem);
+            });
+        };
+
+        // ==========================================
+        // SYSTEM HEAD CALCULATOR LOGIC (V2.2 Integrated)
+        // ==========================================
+        const pipeData = {
+            20: 1.5, 25: 1.9, 32: 2.4, 40: 3.0, 50: 3.7, 63: 4.7, 75: 5.6,
+            90: 6.7, 110: 8.2, 125: 9.3, 140: 10.4, 160: 11.9, 180: 13.4,
+            200: 14.9, 225: 16.7, 250: 18.6, 280: 20.8, 315: 23.4, 355: 26.3,
+            400: 29.7, 450: 33.1, 500: 36.8
+        };
+
+        const eqLengths = {
+            160: { E: 4.63, E45: 2.47, T: 3.08, T_branch: 9.24, V: 1.22, C: 12.0 },
+            110: { E: 4.00, E45: 1.70, T: 5.20, T_branch: 6.40, V: 0.823, C: 11.6 },
+            90:  { E: 3.70, E45: 1.40, T: 4.80, T_branch: 6.00, V: 0.61, C: 8.0 },
+            75:  { E: 3.40, E45: 1.20, T: 3.70, T_branch: 5.20, V: 0.52, C: 7.0 },
+            63:  { E: 2.80, E45: 1.00, T: 2.80, T_branch: 4.00, V: 0.427, C: 6.7 }
+        };
+
+        let segments = [
+            { id: Date.now(), name: 'Main Suction', od: 160, length: 4, flow: 171, fittings: { E: 0, E45: 0, T: 0, T_branch: 0, V: 1, C: 2 } }
+        ];
+
+        function addSegment() {
+            segments.push({
+                id: Date.now(), name: `Segment ${segments.length + 1}`, od: 110, length: 10, flow: 57, 
+                fittings: { E: 0, E45: 0, T: 0, T_branch: 0, V: 0, C: 0 }
+            });
+            renderSegments();
+        }
+
+        function removeSegment(id) {
+            segments = segments.filter(seg => seg.id !== id);
+            renderSegments();
+        }
+
+        function updateSegmentData(id, field, value) {
+            let seg = segments.find(s => s.id === id);
+            if (seg) {
+                seg[field] = (field === 'name') ? value : (parseFloat(value) || 0);
+                calculateSystem();
+            }
+        }
+
+        function updateFittingQty(id, fitting, amount) {
+            let seg = segments.find(s => s.id === id);
+            if (seg && seg.fittings[fitting] + amount >= 0) {
+                seg.fittings[fitting] += amount;
+                calculateSystem();
+            }
+        }
+
+        function calculateSystem() {
+            let staticHead = parseFloat(document.getElementById('staticHead').value) || 0;
+            let availHead = parseFloat(document.getElementById('availHead').value) || 0;
+            let residHead = parseFloat(document.getElementById('residHead').value) || 0;
+            
+            let lengthSF = parseFloat(document.getElementById('lengthSF').value) || 1.15;
+            let headSF = parseFloat(document.getElementById('headSF').value) || 1.10;
+            let filterDrop = parseFloat(document.getElementById('filterDrop').value) || 0;
+            let heatPumpDrop = parseFloat(document.getElementById('heatPumpDrop').value) || 0;
+
+            let totalFrictionDrop = 0;
+
+            segments.forEach(seg => {
+                let thickness = pipeData[seg.od] || 0;
+                let id = seg.od - (2 * thickness);
+                let idMeters = id / 1000;
+                
+                let eqTable = eqLengths[seg.od] || { E:0, E45:0, T:0, T_branch:0, V:0, C:0 };
+                let eqL = (seg.fittings.E * eqTable.E) + (seg.fittings.E45 * eqTable.E45) + (seg.fittings.T * eqTable.T) + 
+                          (seg.fittings.T_branch * eqTable.T_branch) + (seg.fittings.V * eqTable.V) + (seg.fittings.C * eqTable.C);
+                
+                let totalEqLength = (seg.length + eqL) * lengthSF;
+                let area = id > 0 ? Math.PI * Math.pow((idMeters / 2), 2) : 0;
+                let flowPerSec = seg.flow / 3600;
+                seg.velocity = area > 0 ? (flowPerSec / area) : 0;
+                
+                if(id > 0 && seg.velocity > 0) {
+                    seg.frictionDrop = 6.819 * totalEqLength * Math.pow((seg.velocity / 150), 1.852) * Math.pow((1 / idMeters), 1.167);
+                } else {
+                    seg.frictionDrop = 0;
+                }
+                totalFrictionDrop += seg.frictionDrop;
+
+                let idEl = document.getElementById(`id-${seg.id}`);
+                if(idEl) idEl.innerText = id > 0 ? id.toFixed(1) + ' mm' : '--';
+
+                let velEl = document.getElementById(`vel-${seg.id}`);
+                if(velEl) velEl.innerText = seg.velocity.toFixed(2) + ' m/s';
+
+                let dropEl = document.getElementById(`drop-${seg.id}`);
+                if(dropEl) dropEl.innerText = seg.frictionDrop.toFixed(2) + ' m';
+
+                ['E', 'E45', 'T', 'T_branch', 'V', 'C'].forEach(f => {
+                    let qtyEl = document.getElementById(`qty-${f}-${seg.id}`);
+                    if(qtyEl) qtyEl.innerText = seg.fittings[f];
+                });
+            });
+
+            let totalDynamicHead = (totalFrictionDrop + filterDrop + heatPumpDrop) * headSF;
+            let grandTotal = staticHead + totalDynamicHead + residHead - availHead;
+
+            document.getElementById('dynamicHeadOut').innerText = totalDynamicHead > 0 ? totalDynamicHead.toFixed(2) + ' m' : '0.00 m';
+            document.getElementById('grandTotalOut').innerText = grandTotal > 0 ? grandTotal.toFixed(2) + ' m' : '0.00 m';
+        }
+
+        function renderSegments() {
+            let container = document.getElementById('segmentsContainer');
+            container.innerHTML = '';
+            
+            segments.forEach((seg) => {
+                let optionsHtml = '';
+                for (let d in pipeData) {
+                    let selected = (d == seg.od) ? 'selected' : '';
+                    optionsHtml += `<option value="${d}" ${selected}>${d} mm</option>`;
+                }
+
+                let html = `
+                <div class="bg-slate-900/50 border border-slate-800 p-5 rounded-xl shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <input type="text" value="${seg.name}" onblur="updateSegmentData(${seg.id}, 'name', this.value)" class="font-bold text-lg text-white bg-transparent border-b-2 border-transparent hover:border-slate-600 focus:border-brand-500 focus:outline-none px-1 w-1/2">
+                        ${segments.length > 1 ? `<button onclick="removeSegment(${seg.id})" class="text-red-400 text-sm hover:underline font-semibold">Remove</button>` : ''}
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div>
+                            <label class="block text-[0.65rem] font-bold text-slate-500 uppercase">Pipe OD</label>
+                            <select onchange="updateSegmentData(${seg.id}, 'od', this.value)" class="w-full mt-1 px-3 py-2 border border-slate-700 rounded-lg font-mono text-sm bg-slate-950 text-white">${optionsHtml}</select>
+                        </div>
+                        <div>
+                            <label class="block text-[0.65rem] font-bold text-slate-500 uppercase">Inner Dia</label>
+                            <div id="id-${seg.id}" class="mt-3 font-mono font-bold text-slate-300">--</div>
+                        </div>
+                        <div>
+                            <label class="block text-[0.65rem] font-bold text-slate-500 uppercase">Length (m)</label>
+                            <input type="number" value="${seg.length}" oninput="updateSegmentData(${seg.id}, 'length', this.value)" class="w-full mt-1 px-3 py-2 bg-slate-950 text-white border border-slate-700 rounded-lg font-mono text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-[0.65rem] font-bold text-slate-500 uppercase">Flow (m³/hr)</label>
+                            <input type="number" value="${seg.flow}" oninput="updateSegmentData(${seg.id}, 'flow', this.value)" class="w-full mt-1 px-3 py-2 bg-slate-950 text-white border border-slate-700 rounded-lg font-mono text-sm">
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                        <label class="block text-[0.65rem] font-bold text-slate-500 uppercase tracking-widest mb-3">Fittings & Valves</label>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-6">
+                            ${renderCounter(seg.id, '90° Elbow (E)', 'E')}
+                            ${renderCounter(seg.id, '45° Elbow (E\')', 'E45')}
+                            ${renderCounter(seg.id, 'Tee Line (T)', 'T')}
+                            ${renderCounter(seg.id, 'Tee Branch (T\')', 'T_branch')}
+                            ${renderCounter(seg.id, 'Isol Valve (V)', 'V')}
+                            ${renderCounter(seg.id, 'Check Valve (C)', 'C')}
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex flex-wrap justify-end gap-6 text-sm bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <div class="text-slate-400 font-semibold">Velocity: <span id="vel-${seg.id}" class="font-mono font-bold text-brand-500 text-lg ml-1">0.00 m/s</span></div>
+                        <div class="text-slate-400 font-semibold">Friction Drop: <span id="drop-${seg.id}" class="font-mono font-bold text-red-400 text-lg ml-1">0.00 m</span></div>
+                    </div>
+                </div>`;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+            calculateSystem();
+        }
+
+        function renderCounter(id, label, key) {
+            return `
+            <div class="flex items-center justify-between bg-slate-900 px-3 py-2 rounded-lg border border-slate-800">
+                <span class="text-xs font-semibold text-slate-300 truncate mr-2" title="${label}">${label}</span>
+                <div class="flex items-center space-x-2">
+                    <button onclick="updateFittingQty(${id}, '${key}', -1)" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white w-6 h-6 rounded flex items-center justify-center font-bold text-xs shadow-sm">-</button>
+                    <span id="qty-${key}-${id}" class="font-mono font-bold w-4 text-center text-sm text-white">0</span>
+                    <button onclick="updateFittingQty(${id}, '${key}', 1)" class="bg-brand-900/50 hover:bg-brand-900/80 border border-brand-800 text-brand-400 w-6 h-6 rounded flex items-center justify-center font-bold text-xs shadow-sm">+</button>
+                </div>
+            </div>`;
+        }
+
+        // ==========================================
+        // MATERIAL TAKEOFF (BOM) LOGIC
+        // ==========================================
+        const STANDARD_SIZES = ['315mm', '250mm', '200mm', '160mm', '110mm', '90mm', '75mm', '63mm', '50mm', '40mm', '32mm', '25mm', '20mm'];
+        const TRANSLATIONS = {
+            en: {
+                pipe: "Pipe", elbow90: "Elbow 90°", elbow45: "Elbow 45°", socket: "Socket", cap: "Cap", tee: "Tee", cross: "Cross", flange: "Flange", reducer: "Reducer", cement: "Solvent Cement", primer: "Primer", unitMeters: "m", unitPcs: "pcs", unitKilos: "kg", projectLabel: "Project Name", reportTitle: "Material Takeoff Summary (BOM)", colItem: "Item Description", colSize: "Size", colQty: "Quantity", colUnit: "Unit"
+            },
+            ar: {
+                pipe: "ماسورة", elbow90: "كوع", elbow45: "فاتح", socket: "مفّة", cap: "سدّة", tee: "تي", cross: "مصلب", flange: "فلنجة", reducer: "نقّاصة", cement: "آجو", primer: "برايمر", unitMeters: "متر", unitPcs: "عدد", unitKilos: "كجم", projectLabel: "اسم المشروع", reportTitle: "ملخص جدول كميات المواد", colItem: "وصف البند", colSize: "المقاس", colQty: "الكمية", colUnit: "الوحدة"
+            }
+        };
+
+        function initTakeoffBuilder() {
+            const container = document.getElementById('takeoff-sizes-container');
+            container.innerHTML = '';
+
+            STANDARD_SIZES.forEach((size, index) => {
+                let card = document.createElement('div');
+                card.className = 'bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl size-takeoff-card';
+                card.setAttribute('data-size', size);
+
+                let smallerSizes = STANDARD_SIZES.slice(index + 1);
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
+                        <span class="text-lg font-bold text-white">Size: <span class="text-brand-500">${size}</span></span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4 mb-4">
+                        ${renderTakeoffField('Pipe (m)', 'pipe', true)}
+                        ${renderTakeoffField('Elbow 90° (كوع)', 'elbow90')}
+                        ${renderTakeoffField('Elbow 45° (فاتح)', 'elbow45')}
+                        ${renderTakeoffField('Socket (مفّة)', 'socket')}
+                        ${renderTakeoffField('Cap (سدّة)', 'cap')}
+                        ${renderTakeoffField('Tee (تي)', 'tee')}
+                        ${renderTakeoffField('Cross (مصلب)', 'cross')}
+                        ${renderTakeoffField('Flange (فلنجة)', 'flange')}
+                    </div>
+                    <div class="reducers-wrapper bg-slate-950 p-4 rounded-xl border border-slate-800" data-original-size="${size}">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Reducers (نقّاصة)</span>
+                            <button type="button" class="px-3 py-1 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg text-xs font-bold shadow-sm hover:bg-slate-700" onclick="addReducerRow(this, '${size}', ${JSON.stringify(smallerSizes).replace(/"/g, '&quot;')})">+ Add Reducer</button>
+                        </div>
+                        <div class="reducers-rows-container space-y-2"></div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderTakeoffField(label, fitType, isFloat = false) {
+            return `
+            <div>
+                <label class="block text-[0.65rem] font-bold text-slate-500 uppercase truncate mb-1" title="${label}">${label}</label>
+                <input type="number" min="0" ${isFloat ? 'step="0.1"' : ''} value="0" data-fittype="${fitType}" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 text-white rounded-lg text-center font-mono focus:ring-brand-500">
+            </div>`;
+        }
+
+        function addReducerRow(btn, origSize, smallerSizes) {
+            if (smallerSizes.length === 0) return alert("Smallest size; no reducers possible.");
+            let wrapper = btn.closest('.reducers-wrapper').querySelector('.reducers-rows-container');
+            let row = document.createElement('div');
+            row.className = 'reducer-row flex gap-2 items-center bg-slate-900 p-2 border border-slate-700 rounded-lg shadow-sm';
+            
+            let optionsHtml = smallerSizes.map(s => `<option value="${s}" class="bg-slate-950 text-slate-200">${origSize} x ${s}</option>`).join('');
+            
+            row.innerHTML = `
+                <select class="reducer-target-select flex-2 px-3 py-2 border border-slate-700 bg-slate-950 font-semibold text-slate-200 outline-none w-full rounded-lg">
+                    ${optionsHtml}
+                </select>
+                <input type="number" min="1" value="1" class="reducer-qty-input bg-slate-950 text-white w-24 px-3 py-2 border border-slate-700 rounded-lg text-center font-mono">
+                <button type="button" class="px-3 py-2 bg-red-900/30 text-red-400 hover:bg-red-900/50 rounded-lg font-bold text-xs border border-red-900/50" onclick="this.closest('.reducer-row').remove()">X</button>
+            `;
+            wrapper.appendChild(row);
+        }
+
+        let cachedTakeoffData = null;
+        function generateTakeoffPreview() {
+            let items = [];
+            document.querySelectorAll('.size-takeoff-card').forEach(card => {
+                let size = card.getAttribute('data-size');
+                card.querySelectorAll('input[data-fittype]').forEach(input => {
+                    let qty = parseFloat(input.value) || 0;
+                    if (qty > 0) items.push({ type: input.getAttribute('data-fittype'), size: size, qty: qty, targetSize: null });
+                });
+                card.querySelectorAll('.reducer-row').forEach(row => {
+                    let targetSize = row.querySelector('.reducer-target-select').value;
+                    let qty = parseFloat(row.querySelector('.reducer-qty-input').value) || 0;
+                    if (qty > 0) items.push({ type: 'reducer', size: size, targetSize: targetSize, qty: qty });
+                });
+            });
+
+            let cem = parseFloat(document.getElementById('takeoff-cement-qty').value) || 0;
+            if (cem > 0) items.push({ type: 'cement', size: '-', qty: cem, targetSize: null });
+            
+            let prm = parseFloat(document.getElementById('takeoff-primer-qty').value) || 0;
+            if (prm > 0) items.push({ type: 'primer', size: '-', qty: prm, targetSize: null });
+
+            if (items.length === 0) return alert("Please enter at least one quantity.");
+
+            cachedTakeoffData = items;
+            document.getElementById('takeoff-builder-section').style.display = 'none';
+            document.getElementById('takeoff-preview-section').style.display = 'block';
+            updatePreviewContent();
+            
+            // Scroll to top
+            document.getElementById('main-content').scrollTop = 0;
+        }
+
+        function backToTakeoffBuilder() {
+            document.getElementById('takeoff-preview-section').style.display = 'none';
+            document.getElementById('takeoff-builder-section').style.display = 'block';
+        }
+
+        function updatePreviewContent() {
+            if (!cachedTakeoffData) return;
+            let lang = document.getElementById('preview-lang-select').value;
+            let t = TRANSLATIONS[lang];
+            let projectName = document.getElementById('preview-project-name').value || '-';
+
+            let reportArea = document.getElementById('report-printable-area');
+            reportArea.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+
+            document.getElementById('rep-title').innerText = t.reportTitle;
+            document.getElementById('rep-proj-label').innerText = t.projectLabel;
+            document.getElementById('rep-proj-name').innerText = projectName;
+
+            document.getElementById('th-item').innerText = t.colItem;
+            document.getElementById('th-size').innerText = t.colSize;
+            document.getElementById('th-qty').innerText = t.colQty;
+            document.getElementById('th-unit').innerText = t.colUnit;
+
+            let tbody = document.getElementById('report-tbody');
+            tbody.innerHTML = '';
+
+            cachedTakeoffData.forEach(item => {
+                let tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                let itemName = "", itemSize = item.size, unitName = "";
+
+                if (item.type === 'pipe') { itemName = t.pipe; unitName = t.unitMeters; }
+                else if (item.type === 'reducer') { itemName = `${t.reducer} (${item.size} x ${item.targetSize})`; itemSize = `${item.size} x ${item.targetSize}`; unitName = t.unitPcs; }
+                else if (item.type === 'cement') { itemName = t.cement; itemSize = '-'; unitName = t.unitKilos; }
+                else if (item.type === 'primer') { itemName = t.primer; itemSize = '-'; unitName = t.unitKilos; }
+                else { itemName = t[item.type] || item.type; unitName = t.unitPcs; }
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-slate-800 font-medium">${itemName}</td>
+                    <td class="py-3 px-4 text-slate-600">${itemSize}</td>
+                    <td class="py-3 px-4 text-center font-mono font-bold">${item.qty}</td>
+                    <td class="py-3 px-4 text-slate-500">${unitName}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ==========================================
+        // QUICK CEMENT CALCULATOR LOGIC
+        // ==========================================
+        const CEMENT_CHART = { '½" (20mm)': 300, '¾" (25mm)': 200, '1" (32mm)': 125, '1¼" (40mm)': 90, '1½" (50mm)': 90, '2" (63mm)': 60, '2½" (75mm)': 40, '3" (90mm)': 40, '4" (110mm)': 30, '6" (160mm)': 10, '8" (200mm)': 5, '10" (250mm)': 2.5, '12" (315mm)': 1.5 };
+        const FITTING_SOCKETS = { elbow90: 2, elbow45: 2, socket: 2, reducer: 2, cap: 1, tee: 3, cross: 4, flange: 1 };
+
+        function initCementMatrix() {
+            const tbody = document.getElementById('matrix-tbody');
+            tbody.innerHTML = '';
+            const sizes = [
+                { label: '½" (20mm)', key: '½" (20mm)' }, { label: '¾" (25mm)', key: '¾" (25mm)' }, { label: '1" (32mm)', key: '1" (32mm)' }, { label: '1¼" (40mm)', key: '1¼" (40mm)' }, { label: '1½" (50mm)', key: '1½" (50mm)' }, { label: '2" (63mm)', key: '2" (63mm)' }, { label: '2½" (75mm)', key: '2½" (75mm)' }, { label: '3" (90mm)', key: '3" (90mm)' }, { label: '4" (110mm)', key: '4" (110mm)' }, { label: '6" (160mm)', key: '6" (160mm)' }, { label: '8" (200mm)', key: '8" (200mm)' }, { label: '10" (250mm)', key: '10" (250mm)' }, { label: '12" (315mm)', key: '12" (315mm)' }
+            ];
+
+            sizes.forEach(s => {
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="font-bold text-left bg-slate-900 text-white border-r border-slate-700">${s.label}</td>
+                    <td><input type="number" min="0" value="0" data-csize="${s.key}" data-ctype="elbow90"></td>
+                    <td><input type="number" min="0" value="0" data-csize="${s.key}" data-ctype="elbow45"></td>
+                    <td><input type="number" min="0" value="0" data-csize="${s.key}" data-ctype="socket"></td>
+                    <td><input type="number" min="0" value="0" data-csize="${s.key}" data-ctype="reducer"></td>
+                    <td><input type="number" min="0" value="0" data-csize="${s.key}" data-ctype="cap"></td>
+                    <td><input type="number" min="0" value="0" data-csize="${s.key}" data-ctype="tee"></td>
+                    <td><input type="number" min="0" value="0" data-csize="${s.key}" data-ctype="cross"></td>
+                    <td><input type="number" min="0" value="0" data-csize="${s.key}" data-ctype="flange"></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function calculateCement() {
+            const inputs = document.querySelectorAll('#matrix-tbody input[type="number"]');
+            let totalSockets = 0;
+            let sizeBreakdown = {};
+
+            inputs.forEach(input => {
+                let val = parseInt(input.value) || 0;
+                if (val > 0) {
+                    let size = input.getAttribute('data-csize');
+                    let type = input.getAttribute('data-ctype');
+                    let sockets = val * (FITTING_SOCKETS[type] || 2);
+                    totalSockets += sockets;
+                    sizeBreakdown[size] = (sizeBreakdown[size] || 0) + sockets;
+                }
+            });
+
+            if (totalSockets === 0) return alert("Please enter quantities.");
+
+            let wastage = (parseFloat(document.getElementById('wastage-pct').value) || 10) / 100;
+            let totalLitersCement = 0;
+            let bdText = "<ul class='list-disc pl-5 space-y-1'>";
+
+            for (let size in sizeBreakdown) {
+                let sockets = sizeBreakdown[size];
+                let liters = (sockets / (CEMENT_CHART[size] || 60)) * 0.946353;
+                totalLitersCement += liters;
+                bdText += `<li><strong>${size}:</strong> ${sockets} Sockets → ${liters.toFixed(2)} Liters</li>`;
+            }
+
+            let finalCement = totalLitersCement * (1 + wastage);
+            let finalPrimer = finalCement * 0.5;
+
+            document.getElementById('c-total-joints').innerText = totalSockets;
+            document.getElementById('c-total-liters').innerText = `${finalCement.toFixed(2)} L`;
+            document.getElementById('c-total-primer').innerText = `${finalPrimer.toFixed(2)} L`;
+            
+            bdText += `</ul><div class='mt-3 pt-3 border-t border-slate-700 text-xs text-slate-500'>Includes ${(wastage*100)}% wastage margin.</div>`;
+            document.getElementById('cement-breakdown-notes').innerHTML = bdText;
+            document.getElementById('cement-results-card').style.display = 'block';
+        }
+
+        // ==========================================
+        // PUMP SELECTION ENGINE LOGIC
+        // ==========================================
+        const PUMP_METADATA = [
+            {"Pump Family": "MICRO", "Pump Model": "MICRO-25", "Power kW": 0.2, "Power HP": 0.25, "BEP Flow m3/h": 6.0, "BEP Head m": 6.5, "Preferred Flow Min m3/h": 4.8, "Preferred Flow Max m3/h": 6.6, "Catalogue Page": 15},
+            {"Pump Family": "MICRO", "Pump Model": "MICRO-33", "Power kW": 0.25, "Power HP": 0.33, "BEP Flow m3/h": 8.0, "BEP Head m": 6.7, "Preferred Flow Min m3/h": 6.4, "Preferred Flow Max m3/h": 8.8, "Catalogue Page": 15},
+            {"Pump Family": "MINI", "Pump Model": "MINI-50", "Power kW": 0.37, "Power HP": 0.5, "BEP Flow m3/h": 10.0, "BEP Head m": 7.9, "Preferred Flow Min m3/h": 8.0, "Preferred Flow Max m3/h": 11.0, "Catalogue Page": 17},
+            {"Pump Family": "MINI", "Pump Model": "MINI-100", "Power kW": 0.75, "Power HP": 1.0, "BEP Flow m3/h": 14.0, "BEP Head m": 10.4, "Preferred Flow Min m3/h": 11.2, "Preferred Flow Max m3/h": 15.4, "Catalogue Page": 17},
+            {"Pump Family": "MAXI", "Pump Model": "MAXI-20", "Power kW": 1.5, "Power HP": 2.0, "BEP Flow m3/h": 30.0, "BEP Head m": 21.0, "Preferred Flow Min m3/h": 24.0, "Preferred Flow Max m3/h": 33.0, "Catalogue Page": 27},
+            {"Pump Family": "GIANT", "Pump Model": "GIANT-18", "Power kW": 4.0, "Power HP": 5.5, "BEP Flow m3/h": 70.0, "BEP Head m": 66.0, "Preferred Flow Min m3/h": 56.0, "Preferred Flow Max m3/h": 77.0, "Catalogue Page": 37},
+            {"Pump Family": "GIANT", "Pump Model": "GIANT-20", "Power kW": 5.5, "Power HP": 7.5, "BEP Flow m3/h": 90.0, "BEP Head m": 99.0, "Preferred Flow Min m3/h": 72.0, "Preferred Flow Max m3/h": 99.0, "Catalogue Page": 37},
+            {"Pump Family": "GREAT GIANT", "Pump Model": "GREAT GIANT-130", "Power kW": 7.5, "Power HP": 10.0, "BEP Flow m3/h": 160.0, "BEP Head m": 114.0, "Preferred Flow Min m3/h": 128.0, "Preferred Flow Max m3/h": 176.0, "Catalogue Page": 45}
+        ];
+        
+        const PUMP_CURVES = {
+            "MICRO-25": [[1.4,7],[6.5,6],[9.4,5],[11.6,4]],
+            "MICRO-33": [[4.6,12],[5.6,11],[6.7,10],[7.6,9],[8.3,8],[9.3,7],[9.9,6],[13.2,4]],
+            "MINI-50": [[2.3,14],[5.6,12],[7.9,10],[10.0,8],[11.7,6],[13.3,4]],
+            "MINI-100": [[4.0,16],[7.8,14],[10.4,12],[12.5,10],[14.4,8],[16.4,6],[18.4,4]],
+            "MAXI-20": [[4.5,18],[12.0,16],[21.0,14],[27.6,12],[33.7,10],[39.8,8],[44.7,6]],
+            "GIANT-18": [[16.0,20],[38.0,18],[53.0,16],[66.0,14],[75.0,12],[86.0,10],[96.0,8],[108.0,6]],
+            "GIANT-20": [[33.0,20],[52.0,18],[79.0,16],[99.0,14],[113.0,12],[131.0,10],[147.0,8],[171.0,6]],
+            "GREAT GIANT-130": [[28.0,20],[69.0,18],[93.0,16],[114.0,14],[133.0,12],[148.0,10],[159.0,8],[165.0,6]]
+        };
+
+        let currentMatches = [], currentIndex = 0, activeChart = null;
+
+        function interpolateHead(curve, targetFlow) {
+            let sorted = [...curve].sort((a,b) => a[0] - b[0]);
+            if (targetFlow < sorted[0][0] || targetFlow > sorted[sorted.length - 1][0]) return null;
+            for (let i = 0; i < sorted.length - 1; i++) {
+                if (targetFlow >= sorted[i][0] && targetFlow <= sorted[i+1][0]) {
+                    return sorted[i][1] + ((targetFlow - sorted[i][0]) * (sorted[i+1][1] - sorted[i][1])) / (sorted[i+1][0] - sorted[i][0]);
+                }
+            }
+            return null;
+        }
+
+        function runSelection(isNext = false) {
+            const Q_req = parseFloat(document.getElementById('flow-input').value);
+            const H_req = parseFloat(document.getElementById('head-input').value);
+            const err = document.getElementById('error-container');
+            err.style.display = 'none';
+
+            if (isNaN(Q_req) || Q_req <= 0 || isNaN(H_req) || H_req <= 0) {
+                err.innerText = "Please enter valid numerical values greater than zero.";
+                err.style.display = 'block';
+                return;
+            }
+
+            if (!isNext) {
+                currentMatches = []; currentIndex = 0;
+                PUMP_METADATA.forEach(pump => {
+                    let c = PUMP_CURVES[pump['Pump Model']];
+                    if (!c) return;
+                    let H_pump = interpolateHead(c, Q_req);
+                    if (H_pump !== null && H_pump >= H_req) {
+                        currentMatches.push({ pump, curve: c, pumpHead: H_pump, headDelta: H_pump - H_req });
+                    }
+                });
+                currentMatches.sort((a, b) => a.headDelta - b.headDelta);
+            } else { currentIndex++; }
+
+            if (currentMatches.length === 0 || currentIndex >= currentMatches.length) {
+                err.innerText = isNext ? "No additional alternative pumps." : "No suitable pump found.";
+                err.style.display = 'block';
+                if (!isNext) document.getElementById('results-section').style.display = 'none';
+                document.getElementById('next-btn').disabled = true;
+                return;
+            }
+
+            displayResult(currentMatches[currentIndex], Q_req, H_req);
+            document.getElementById('next-btn').disabled = (currentIndex >= currentMatches.length - 1);
+        }
+
+        function displayResult(match, Q_req, H_req) {
+            const p = match.pump;
+            document.getElementById('results-section').style.display = 'block';
+            document.getElementById('res-model-title').innerText = p['Pump Model'];
+            document.getElementById('res-family-subtitle').innerText = `${p['Pump Family']} Series`;
+
+            document.getElementById('metric-req-duty').innerText = `${Q_req} @ ${H_req}m`;
+            document.getElementById('metric-pump-head').innerText = `${match.pumpHead.toFixed(1)} m`;
+            document.getElementById('metric-power').innerText = `${p['Power kW']}kW (${p['Power HP']}HP)`;
+            document.getElementById('metric-bep').innerText = p['BEP Flow m3/h'] ? `${p['BEP Flow m3/h']} @ ${p['BEP Head m']}m` : "-";
+
+            let notes = `<strong>${p['Pump Model']}</strong> safely delivers <strong>${match.pumpHead.toFixed(1)} m</strong> at requested flow.`;
+            document.getElementById('engineering-notes-text').innerHTML = notes;
+
+            if (activeChart) activeChart.destroy();
+            const curvePoints = [...match.curve].sort((a,b)=>a[0]-b[0]).map(pt => ({x: pt[0], y: pt[1]}));
+            
+            activeChart = new Chart(document.getElementById('qhChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    datasets: [
+                        { label: 'Q-H Curve', data: curvePoints, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', borderWidth: 3, fill: true, tension: 0.3 },
+                        { label: 'Duty Point', data: [{x: Q_req, y: H_req}], backgroundColor: '#ef4444', borderColor: '#ef4444', pointRadius: 8, type: 'scatter' },
+                        { label: 'BEP', data: [{x: p['BEP Flow m3/h'], y: p['BEP Head m']}], backgroundColor: '#10b981', pointRadius: 6, pointStyle: 'triangle', type: 'scatter' }
+                    ]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { color: '#cbd5e1' } } 
+                    }, 
+                    scales: { 
+                        x: { 
+                            type: 'linear',
+                            title: {display: true, text: 'Flow (m³/h)', color: '#94a3b8'}, 
+                            grid: { color: '#334155' }, 
+                            ticks: { color: '#cbd5e1' } 
+                        }, 
+                        y: { 
+                            title: {display: true, text: 'Head (m)', color: '#94a3b8'}, 
+                            grid: { color: '#334155' }, 
+                            ticks: { color: '#cbd5e1' } 
+                        } 
+                    } 
+                }
+            });
+        }
+    </script>
+</body>
+</html>
